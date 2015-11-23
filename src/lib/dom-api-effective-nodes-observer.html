@@ -12,7 +12,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 (function() {
   'use strict';
 
-    var DomApi = Polymer.DomApi.ctor;
+    var DomApi = Polymer.DomApi;
     var Settings = Polymer.Settings;
     var hasDomApi = Polymer.DomApi.hasDomApi;
 
@@ -55,11 +55,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _setup: function() {
-        this._observeContentElements(this.domApi.childNodes);
+        this._observeInsertionPoints(this.domApi.childNodes);
       },
 
       _cleanup: function() {
-        this._unobserveContentElements(this.domApi.childNodes);
+        this._unobserveInsertionPoints(this.domApi.childNodes);
       },
 
       _hasListeners: function() {
@@ -88,36 +88,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _beforeCallListeners: function() {
-        this._updateContentElements();
+        this._updateInsertionPoints();
       },
 
-      _updateContentElements: function() {
-        this._observeContentElements(this.domApi.childNodes);
+      _updateInsertionPoints: function() {
+        this._observeInsertionPoints(this.domApi.childNodes);
       },
 
-      _observeContentElements: function(elements) {
+      _observeInsertionPoints: function(elements) {
         for (var i=0, n; (i < elements.length) && (n=elements[i]); i++) {
-          if (this._isContent(n)) {
+          if (DomApi.isInsertionPoint(n)) {
             n.__observeNodesMap = n.__observeNodesMap || new WeakMap();
             if (!n.__observeNodesMap.has(this)) {
-              n.__observeNodesMap.set(this, this._observeContent(n));
+              n.__observeNodesMap.set(this, this._observeInsertionPoint(n));
             }
           }
         }
       },
 
-      _observeContent: function(content) {
+      _observeInsertionPoint: function(ip) {
         var self = this;
-        var h = Polymer.dom(content).observeNodes(function() {
+        var h = Polymer.dom(ip).observeNodes(function() {
           self._scheduleNotify();
         });
         h._avoidChangeCalculation = true;
         return h;
       },
 
-      _unobserveContentElements: function(elements) {
+      _unobserveInsertionPoints: function(elements) {
         for (var i=0, n, h; (i < elements.length) && (n=elements[i]); i++) {
-          if (this._isContent(n)) {
+          if (DomApi.isInsertionPoint(n)) {
             h = n.__observeNodesMap.get(this);
             if (h) {
               Polymer.dom(n).unobserveNodes(h);
@@ -125,10 +125,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             }
           }
         }
-      },
-
-      _isContent: function(node) {
-        return (node.localName === 'content');
       },
 
       _callListeners: function() {
@@ -237,7 +233,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             // provoke all listeners needed for <content> observation
             // to always call listeners when no-op changes occur (which may
             // affect lower distributions.
-            this._makeContentListenersAlwaysNotify();
+            this._makeInsertionPointListenersAlwaysNotify();
             this._observer.disconnect();
             this._observer.observe(this.node, { 
               childList: true,
@@ -252,10 +248,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         },
 
-        _makeContentListenersAlwaysNotify: function() {
+        _makeInsertionPointListenersAlwaysNotify: function() {
           for (var i=0, h; i < this._listeners.length ; i++) {
             h = this._listeners[i];
-            h._alwaysNotify = h._isContentListener;
+            h._alwaysNotify = h._isInsertionPointListener;
           }
         }
 

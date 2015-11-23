@@ -18,7 +18,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   var dom = DomApi.factory;
   var TreeApi = Polymer.TreeApi;
   var getInnerHTML = Polymer.domInnerHTML.getInnerHTML;
-  var CONTENT = DomApi.CONTENT;
 
   // *************** Configure DomApi for Shady DOM!! ***************
   if (Settings.useShadow) {
@@ -78,8 +77,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         !this._tryRemoveUndistributedNode(node)) {
         if (ref_node) {
           // if ref_node is <content> replace with first distributed node
-          ref_node = ref_node.localName === CONTENT ?
-            this._firstComposedNode(ref_node) : ref_node;
+          // TODO(sorvell): add tests for this usage...
+          ref_node = DomApi.isInsertionPoint(ref_node) ?
+            this._firstComposedNode(ref_node) || 
+            this._nextComposedNode(ref_node) : ref_node;
         }
         // if adding to a shadyRoot, add to host instead
         var container = this.node._isShadyRoot ? this.node.host : this.node;
@@ -165,11 +166,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       // distributeContent(true), which updates insertion points manually
       // and forces distribution.
       var fragContent = (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) &&
-        !node.__noContent && Polymer.dom(node).querySelector(CONTENT);
+        !node.__noContent && Polymer.dom(node).querySelector(DomApi.IPSELECTOR);
       var wrappedContent = fragContent &&
         (Polymer.dom(fragContent).parentNode.nodeType !==
         Node.DOCUMENT_FRAGMENT_NODE);
-      var hasContent = fragContent || (node.localName === CONTENT);
+      var hasContent = fragContent || DomApi.isInsertionPoint(node);
       // There are 2 possible cases where a distribution may need to occur:
       // 1. <content> being inserted (the host of the shady root where
       //    content is inserted needs distribution)
@@ -202,7 +203,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       var added;
       if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE &&
         !node.__noContent) {
-        var c$ = dom(node).querySelectorAll(CONTENT);
+        var c$ = dom(node).querySelectorAll(DomApi.IPSELECTOR);
         for (var i=0, n, np, na; (i<c$.length) && (n=c$[i]); i++) {
           np = dom(n).parentNode;
           // don't allow node's parent to be fragment itself
@@ -212,7 +213,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           na = this._maybeAddInsertionPoint(n, np);
           added = added || na;
         }
-      } else if (node.localName === CONTENT) {
+      } else if (DomApi.isInsertionPoint(node)) {
         TreeApi.Logical.saveChildNodes(parent);
         TreeApi.Logical.saveChildNodes(node);
         added = true;
@@ -231,8 +232,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _updateInsertionPoints: function(host) {
+      var ipName = host.shadyRoot._useSlot ? 'slot' : 'content';
       var i$ = host.shadyRoot._insertionPoints =
-        dom(host.shadyRoot).querySelectorAll(CONTENT);
+        dom(host.shadyRoot).querySelectorAll(ipName);
       // ensure <content>'s and their parents have logical dom info.
       for (var i=0, c; i < i$.length; i++) {
         c = i$[i];
@@ -341,15 +343,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     // TODO(sorvell): This will fail if distribution that affects this
     // question is pending; this is expected to be exceedingly rare, but if
     // the issue comes up, we can force a flush in this case.
-    _firstComposedNode: function(content) {
-      var n$ = dom(content).getDistributedNodes();
+    // TODO(sorvell): update for slot!
+    _firstComposedNode: function(ip) {
+      var n$ = dom(ip).getDistributedNodes();
       for (var i=0, l=n$.length, n, p$; (i<l) && (n=n$[i]); i++) {
-        p$ = dom(n).getDestinationInsertionPoints();
-        // means that we're composed to this spot.
-        if (p$[p$.length-1] === content) {
+        if (DomApi.isComposedInsertionPoint(n, ip)) {
           return n;
         }
       }
+    },
+
+    _nextComposedNode: function(ip, container) {
+      var n = dom(ip).nextSibling;
+      while (n && DopmApi.isInsertionPoint(n) || 
+        TreeApi.Composed.getParentNode(n) != container) {
+        n = dom(n).nextSibling;
+      }
+      return n;
     },
 
     // TODO(sorvell): consider doing native QSA and filtering results.
@@ -623,6 +633,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
 
   });
+
+  DomApi.IPSELECTOR = 'content, slot';
+
+  DomApi.isComposedInsertionPoint = function(node, insertionPoint) {
+    if (node._assignedSlot) {
+      return (!insertionPoint._assignedSlot);
+    }
+    var points = node._destinationInsertionPoints;
+    return points && points[points.length - 1] === insertionPoint;
+  }
 
   DomApi.hasInsertionPoint = function(root) {
     return Boolean(root && root._insertionPoints.length);

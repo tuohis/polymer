@@ -84,7 +84,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var list = [];
         var c$ = this.childNodes;
         for (var i=0, l=c$.length, c; (i<l) && (c=c$[i]); i++) {
-          if (c.localName === CONTENT) {
+          if (DomApi.isInsertionPoint(c)) {
             var d$ = DomApi.factory(c).getDistributedNodes();
             for (var j=0; j < d$.length; j++) {
               list.push(d$[j]);
@@ -110,7 +110,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       observeNodes: function(callback) {
         if (callback) {
           if (!this.observer) {
-            this.observer = this.node.localName === CONTENT ?
+            this.observer = DomApi.isInsertionPoint(this.node) ?
               new DomApi.DistributedNodesObserver(this) :
               new DomApi.EffectiveNodesObserver(this);
           }
@@ -138,8 +138,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     };
 
-    var CONTENT = DomApi.CONTENT = 'content';
-
     DomApi.factory = function(node, patch) {
       node = node || document;
       if (!node.__domApi) {
@@ -151,6 +149,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     DomApi.hasApi = function(node) {
       return Boolean(node.__domApi);
     };
+
+    DomApi.isInsertionPoint = function(node) {
+      return DomApi.isContentElement(node) || DomApi.isSlotElement(node);
+    }
+
+    DomApi.isContentElement = function(node) {
+      return node.localName == 'content';
+    }
+
+    DomApi.isSlotElement = function(node) {
+      return node.localName == 'slot';
+    }
 
     DomApi.ctor = DomApi;
 

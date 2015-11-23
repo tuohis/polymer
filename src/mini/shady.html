@@ -79,9 +79,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.shadyRoot._isShadyRoot = true;
         this.shadyRoot._dirtyRoots = [];
         // capture insertion point list
-        var i$ = this.shadyRoot._insertionPoints = !this._notes || 
-          this._notes._hasContent ?
-          this.shadyRoot.querySelectorAll('content') : [];
+        var i$ = this.shadyRoot._insertionPoints = this._notes && 
+          this._notes._hasContent ? 
+          this.shadyRoot.querySelectorAll('content') : 
+          this.shadyRoot.querySelectorAll('slot');
+        this.shadyRoot._useSlot = (i$.length && DomApi.isSlotElement(i$[0]));
         // save logical tree info
         // a. for shadyRoot 
         // b. for insertion points (fallback) 
@@ -218,15 +220,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (child._destinationInsertionPoints) {
             child._destinationInsertionPoints = undefined;
           }
-          if (isInsertionPoint(child)) {
+          child._assignedSlot = undefined;
+          if (DomApi.isContentElement(child)) {
             clearDistributedDestinationInsertionPoints(child);
           }
         }
         // insertion points
         var root = this.shadyRoot;
         var p$ = root._insertionPoints;
-        for (var j = 0; j < p$.length; j++) {
-          p$[j]._distributedNodes = [];
+        for (var j=0, p; (j<p$.length) && (p=p$[j]); j++) {
+          p._distributedNodes = [];
+          if (root._useSlot) {
+            p._assignedNodes = [];
+          }
         }
       },
 
@@ -237,7 +243,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var children = TreeApi.Logical.getChildNodes(this);
         for (var i = 0; i < children.length; i++) {
           var child = children[i];
-          if (isInsertionPoint(child)) {
+          if (!this.shadyRoot._useSlot && DomApi.isContentElement(child)) {
             pool.push.apply(pool, child._distributedNodes);
           } else {
             pool.push(child);
@@ -251,8 +257,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       // array where applicable.
       _distributePool: function(node, pool) {
         var p$ = node._insertionPoints;
+        var slot = this.shadyRoot._useSlot
+        var matcher = slot ? matchesSlotElement : matchesContentElement;
+        var distributor = slot ? distributeNodeToSlot : 
+          distributeNodeToContent;
         for (var i=0, l=p$.length, p; (i<l) && (p=p$[i]); i++) {
-          this._distributeInsertionPoint(p, pool);
+          this._distributeInsertionPoint(p, pool, matcher, distributor);
+          if (slot) {
+            updateSlotDistributedNodes(p);
+          }
           // provoke redistribution on insertion point parents
           // must do this on all candidate hosts since distribution in this
           // scope invalidates their distribution.
@@ -260,7 +273,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      _distributeInsertionPoint: function(content, pool) {
+      _distributeInsertionPoint: function(ip, pool, matcher, distributor) {
         // distribute nodes from the pool that this selector matches
         var anyDistributed = false;
         for (var i=0, l=pool.length, node; i < l; i++) {
@@ -270,8 +283,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             continue;
           }
           // distribute this node if it matches
-          if (this._matchesContentSelect(node, content)) {
-            distributeNodeInto(node, content);
+          if (matcher(node, ip)) {
+            distributor(node, ip);
             // remove this node from the pool
             pool[i] = undefined;
             // since at least one node matched, we won't need fallback content
@@ -280,9 +293,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         // Fallback content if nothing was distributed here
         if (!anyDistributed) {
-          var children = TreeApi.Logical.getChildNodes(content);
+          var children = TreeApi.Logical.getChildNodes(ip);
           for (var j = 0; j < children.length; j++) {
-            distributeNodeInto(children[j], content);
+            distributor(children[j], ip);
           }
         }
       },
@@ -307,11 +320,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var c$ = TreeApi.Logical.getChildNodes(node.shadyRoot || node);
         for (var i = 0; i < c$.length; i++) {
           var child = c$[i];
-          if (isInsertionPoint(child)) {
+          if (DomApi.isInsertionPoint(child)) {
             var distributedNodes = child._distributedNodes;
             for (var j = 0; j < distributedNodes.length; j++) {
               var distributedNode = distributedNodes[j];
-              if (isFinalDestination(child, distributedNode)) {
+              if (DomApi.isComposedInsertionPoint(distributedNode, child)) {
                 children.push(distributedNode);
               }
             }
@@ -355,35 +368,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         TreeApi.Composed.ensureParentNodes(container, children);
       },
 
-      _matchesContentSelect: function(node, contentElement) {
-        var select = contentElement.getAttribute('select');
-        // no selector matches all nodes (including text)
-        if (!select) {
-          return true;
-        }
-        select = select.trim();
-        // same thing if it had only whitespace
-        if (!select) {
-          return true;
-        }
-        // selectors can only match Elements
-        if (!(node instanceof Element)) {
-          return false;
-        }
-        // only valid selectors can match:
-        //   TypeSelector
-        //   *
-        //   ClassSelector
-        //   IDSelector
-        //   AttributeSelector
-        //   negation
-        var validSelectors = /^(:not\()?[*.#[a-zA-Z_|]/;
-        if (!validSelectors.test(select)) {
-          return false;
-        }
-        return this.elementMatches(select, node);
-      },
-
       // system override point
       _elementAdd: function() {},
 
@@ -391,16 +375,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _elementRemove: function() {}
 
     });
-
-    function distributeNodeInto(child, insertionPoint) {
-      insertionPoint._distributedNodes.push(child);
-      var points = child._destinationInsertionPoints;
-      if (!points) {
-        child._destinationInsertionPoints = [insertionPoint];
-      } else {
-        points.push(insertionPoint);
-      }
-    }
 
     function clearDistributedDestinationInsertionPoints(content) {
       var e$ = content._distributedNodes;
@@ -426,16 +400,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     }
 
-    function isFinalDestination(insertionPoint, node) {
-      var points = node._destinationInsertionPoints;
-      return points && points[points.length - 1] === insertionPoint;
-    }
-
-    function isInsertionPoint(node) {
-      // TODO(jmesserly): we could add back 'shadow' support here.
-      return node.localName == 'content';
-    }
-
     // returns the host that's the top of this host's distribution tree
     function getTopDistributingHost(host) {
       while (host && hostNeedsRedistribution(host)) {
@@ -450,7 +414,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       var c$ = Polymer.dom(host).children;
       for (var i=0, c; i < c$.length; i++) {
         c = c$[i];
-        if (c.localName === 'content') {
+        if (DomApi.isContentElement(c)) {
           return host.domHost;
         }
       }
@@ -480,6 +444,85 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
     }
+
+    function matchesContentElement(node, contentElement) {
+      var select = contentElement.getAttribute('select');
+      // no selector matches all nodes (including text)
+      if (!select) {
+        return true;
+      }
+      select = select.trim();
+      // same thing if it had only whitespace
+      if (!select) {
+        return true;
+      }
+      // selectors can only match Elements
+      if (!(node instanceof Element)) {
+        return false;
+      }
+      // only valid selectors can match:
+      //   TypeSelector
+      //   *
+      //   ClassSelector
+      //   IDSelector
+      //   AttributeSelector
+      //   negation
+      var validSelectors = /^(:not\()?[*.#[a-zA-Z_|]/;
+      if (!validSelectors.test(select)) {
+        return false;
+      }
+      return DomApi.matchesSelector.call(node, select);
+    }
+
+    function matchesSlotElement(node, slotElement) {
+      var slotName = slotElement.getAttribute('name');
+      // no selector matches all nodes (including text)
+      if (!slotName) {
+        return true;
+      }
+      slotName = slotName.trim();
+      // same thing if it had only whitespace
+      if (!slotName) {
+        return true;
+      }
+      // only elements can have attributes
+      if (!(node instanceof Element)) {
+        return false;
+      }
+      var slot = node.getAttribute('slot');
+      return (slot && (slot.trim() == slotName));
+    }
+
+    function distributeNodeToContent(child, content) {
+      content._distributedNodes.push(child);
+      var points = child._destinationInsertionPoints;
+      if (!points) {
+        child._destinationInsertionPoints = [content];
+      } else {
+        points.push(content);
+      }
+    }
+
+    function distributeNodeToSlot(child, slot) {
+      slot._assignedNodes.push(child);
+      child._assignedSlot = slot;
+    }
+
+    function updateSlotDistributedNodes(slot) {
+      var n$ = slot._assignedNodes;
+      slot._distributedNodes = [];
+      for (var i=0, n; (i<n$.length) && (n=n$[i]) ; i++) {
+        if (DomApi.isSlotElement(n)) {
+          var d$ = n._distributedNodes;
+          for (var j=0; j < d$.length; j++) {
+            slot._distributedNodes.push(d$[j]);
+          }
+        } else {
+          slot._distributedNodes.push(n$[i]);
+        }
+      }
+    }
+
   })();
 
 </script>
