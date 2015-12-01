@@ -199,8 +199,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         bindings: [],
         events: []
       };
-      if (element.localName === 'content') {
-        list._hasContent = true;
+      if (element.localName === 'content' || element.localName === 'slot') {
+        list._hasInsertionPoint = true;
       }
       this._parseChildNodesAnnotations(element, annote, list, stripWhiteSpace);
       // TODO(sjmiles): is this for non-ELEMENT nodes? If so, we should

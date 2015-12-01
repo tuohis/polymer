@@ -338,7 +338,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       this._registerHost(host);
       this._beginHosting();
       this.root = this.instanceTemplate(this._template);
-      this.root.__noContent = !this._notes._hasContent;
+      this.root.__noInsertionPoint = !this._notes._hasInsertionPoint;
       this.root.__styleScoped = true;
       this._endHosting();
       this._marshalAnnotatedNodes();

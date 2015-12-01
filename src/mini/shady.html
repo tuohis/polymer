@@ -80,9 +80,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.shadyRoot._dirtyRoots = [];
         // capture insertion point list
         var i$ = this.shadyRoot._insertionPoints = this._notes && 
-          this._notes._hasContent ? 
-          this.shadyRoot.querySelectorAll('content') : 
-          this.shadyRoot.querySelectorAll('slot');
+          this._notes._hasInsertionPoint ? 
+          this.shadyRoot.querySelectorAll(DomApi.IPSELECTOR) : 
+          [];
         this.shadyRoot._useSlot = (i$.length && DomApi.isSlotElement(i$[0]));
         // save logical tree info
         // a. for shadyRoot 
@@ -514,8 +514,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       for (var i=0, n; (i<n$.length) && (n=n$[i]) ; i++) {
         if (DomApi.isSlotElement(n)) {
           var d$ = n._distributedNodes;
-          for (var j=0; j < d$.length; j++) {
-            slot._distributedNodes.push(d$[j]);
+          if (d$) {
+            for (var j=0; j < d$.length; j++) {
+              slot._distributedNodes.push(d$[j]);
+            }
           }
         } else {
           slot._distributedNodes.push(n$[i]);

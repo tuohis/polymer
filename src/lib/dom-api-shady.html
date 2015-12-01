@@ -166,7 +166,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       // distributeContent(true), which updates insertion points manually
       // and forces distribution.
       var fragContent = (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) &&
-        !node.__noContent && Polymer.dom(node).querySelector(DomApi.IPSELECTOR);
+        !node.__noInsertionPoint && 
+        Polymer.dom(node).querySelector(DomApi.IPSELECTOR);
       var wrappedContent = fragContent &&
         (Polymer.dom(fragContent).parentNode.nodeType !==
         Node.DOCUMENT_FRAGMENT_NODE);
@@ -202,7 +203,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     _maybeAddInsertionPoint: function(node, parent) {
       var added;
       if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE &&
-        !node.__noContent) {
+        !node.__noInsertionPoint) {
         var c$ = dom(node).querySelectorAll(DomApi.IPSELECTOR);
         for (var i=0, n, np, na; (i<c$.length) && (n=c$[i]); i++) {
           np = dom(n).parentNode;
@@ -232,10 +233,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _updateInsertionPoints: function(host) {
-      var ipName = host.shadyRoot._useSlot ? 'slot' : 'content';
       var i$ = host.shadyRoot._insertionPoints =
-        dom(host.shadyRoot).querySelectorAll(ipName);
-      // ensure <content>'s and their parents have logical dom info.
+        dom(host.shadyRoot).querySelectorAll(DomApi.IPSELECTOR);
+      host.shadyRoot._useSlot = i$.length && DomApi.isSlotElement(i$[0]);
+      // ensure ip's and their parents have logical dom info.
       for (var i=0, c; i < i$.length; i++) {
         c = i$[i];
         TreeApi.Logical.saveChildNodes(c);
