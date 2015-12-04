@@ -408,7 +408,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       if (this._parentProps) {
         var templatized = this._templatized;
         for (var prop in this._parentProps) {
-          model[prop] = templatized.__data__[this._parentPropPrefix + prop];
+          var val = templatized.__data__[this._parentPropPrefix + prop];
+          if (val !== undefined) {
+            model[prop] = val;
+          }
         }
       }
       return new this.ctor(model, this);

@@ -226,7 +226,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // really need to track down a specific case where this happens.
           value = target.__data__ ? target.__data__[property] : target[property];
           if (!isStructured) {
-            this[path] = value;
+            this.__setProperty(path, value);
+            // this[path] = value;
           } else {
             // TODO(kschaaf): dirty check avoids null references when the object has gone away
             if (this.__data__[path] != value) {

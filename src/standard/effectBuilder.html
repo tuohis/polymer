@@ -126,11 +126,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     },
 
+    _addAnnotatedListener: function(index, name, value, event) {
+      Polymer.Bind._addAnnotatedListener(this, index, name, value, event);
+    },
+
     _addAnnotationEffect: function(note, index) {
       // TODO(sjmiles): annotations have 'effects' proper and 'listener'
       if (Polymer.Bind._shouldAddListener(note)) {
         // <node>.on.<dash-case-property>-changed: <path> = e.detail.value
-        Polymer.Bind._addAnnotatedListener(this, index,
+        this._addAnnotatedListener(index,
           note.name, note.parts[0].value, note.parts[0].event);
       }
       for (var i=0; i<note.parts.length; i++) {
@@ -161,7 +165,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       } else {
         for (var i=0, arg; (i<sig.args.length) && (arg=sig.args[i]); i++) {
           if (!arg.literal) {
-            this.__addAnnotatedComputationEffect(arg.model, index, note, part, 
+            this.__addAnnotatedComputationEffect(arg.model, index, note, part,
               arg);
           }
         }
@@ -268,32 +272,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     _applyEffectValue: function(info, value) {
       var node = this._nodes[info.index];
-      var property = info.name;
-      if (info.isCompound) {
-        var storage = node.__compoundStorage__[property];
-        storage[info.compoundIndex] = value;
-        value = storage.join('');
-      }
-      // special processing for 'class' and 'className'; 'class' handled
-      // when attr is serialized.
-      if (info.kind == 'attribute') {
-        this.serializeValueToAttribute(value, property, node);
-      } else {
-        // TODO(sorvell): consider pre-processing the following two string
-        // comparisons in the hot path so this can be a boolean check
-        if (property === 'className') {
-          value = this._scopeElementClass(node, value);
+      if (node) {
+        var property = info.name;
+        if (info.isCompound) {
+          var storage = node.__compoundStorage__[property];
+          storage[info.compoundIndex] = value;
+          value = storage.join('');
         }
-        // Some browsers serialize `undefined` to `"undefined"`
-        if (property === 'textContent' ||
-            (node.localName == 'input' && property == 'value')) {
-          value = value == undefined ? '' : value;
-        }
-        // setProperty using fromAbove to avoid spinning the wheel needlessly.
-        var pinfo;
-        if (!node._propertyInfo || !(pinfo = node._propertyInfo[property]) || 
-          !pinfo.readOnly) {
-          this.__setProperty(property, value, true, node);
+        // special processing for 'class' and 'className'; 'class' handled
+        // when attr is serialized.
+        if (info.kind == 'attribute') {
+          this.serializeValueToAttribute(value, property, node);
+        } else {
+          // TODO(sorvell): consider pre-processing the following two string
+          // comparisons in the hot path so this can be a boolean check
+          if (property === 'className') {
+            value = this._scopeElementClass(node, value);
+          }
+          // Some browsers serialize `undefined` to `"undefined"`
+          if (property === 'textContent' ||
+              (node.localName == 'input' && property == 'value')) {
+            value = value == undefined ? '' : value;
+          }
+          // setProperty using fromAbove to avoid spinning the wheel needlessly.
+          var pinfo;
+          if (!node._propertyInfo || !(pinfo = node._propertyInfo[property]) ||
+            !pinfo.readOnly) {
+            this.__setProperty(property, value, true, node);
+          }
         }
       }
     },

@@ -56,30 +56,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * in better performance.
        */
       restamp: {
-        type: Boolean,
-        observer: '_queueRender'
+        type: Boolean
+      },
+
+      __hideTemplateChildren__: {
+        observer: '_showHideChildren'
       }
 
     },
 
-    behaviors: [
-      Polymer.Templatizer
-    ],
-
     _queueRender: function() {
-      this._debounceTemplate(this._render);
+      Polymer.Templatizer._debounceTemplate.call(this, this._render);
+    },
+
+    created: function() {
+      this._nodes = [];
     },
 
     detached: function() {
       // TODO(kschaaf): add logic to re-stamp in attached?
-      this._teardownInstance();
+      this._teardownChildren();
     },
 
     attached: function() {
       if (this.if && this.ctor) {
         // TODO(sorvell): should not be async, but node can be attached
         // when shady dom is in the act of distributing/composing so push it out
-        this.async(this._ensureInstance);
+        this.async(this._ensureChildren);
       }
     },
 
@@ -91,20 +94,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
      * validate application state.
      */
     render: function() {
-      this._flushTemplates();
+      Polymer.Templatizer._flushTemplates.call(this);
     },
 
     _render: function() {
       if (this.if) {
-        if (!this.ctor) {
-          this.templatize(this);
+        if (!this._setupComplete) {
+          this._setup();
         }
-        this._ensureInstance();
+        this._ensureChildren();
         this._showHideChildren();
       } else if (this.restamp) {
-        this._teardownInstance();
+        this._teardownChildren();
       }
-      if (!this.restamp && this._instance) {
+      if (!this.restamp && this._children) {
         this._showHideChildren();
       }
       if (this.if != this._lastIf) {
@@ -113,57 +116,101 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     },
 
-    _ensureInstance: function() {
-      if (!this._instance) {
+    _setup: function() {
+      this._template = this;
+      this._content = this._content || this.content;
+      if (this._content._setup) {
+        this.mixin(this, this._content._setup);
+      } else {
+        this._prepAnnotations();
+        this._addPropertyEffect = function(model, type, effect) {
+          if (type == 'annotation') {
+            effect.value = '_parent_' + effect.value;
+            model = '_parent_' + model;
+            var fx = this._propertyEffects[model];
+            if (!fx) {
+              this._addPropertyEffect(model, 'notify', {
+                event: Polymer.CaseMap.camelToDashCase(model) + '-changed'});
+            }
+          }
+          Polymer.Base._addPropertyEffect.call(this, model, type, effect);
+        };
+        this._addAnnotatedListener = function(index, name, value, event) {
+          Polymer.Base._addAnnotatedListener.call(this, index, name, '_parent_' + value, event);
+        };
+        this._propertyEffects = Object.create(this._propertyEffects);
+        this._propertyInfo = Object.create(this._propertyInfo);
+        this._addAnnotationEffects(this._notes);
+        this._content._setup = {
+          _propertyEffects: this._propertyEffects,
+          _propertyInfo: this._propertyInfo,
+          _bindListeners: this._bindListeners,
+          _notes: this._content._notes
+        };
+      }
+      var props = this._content._parentProps;
+      for (var p in props) {
+        p = '_parent_' + p;
+        var val = this[p];
+        if (val !== undefined) {
+          this.__data__[p] = val;
+        }
+      }
+      this._setupComplete = true;
+    },
+
+    _ensureChildren: function() {
+      if (!this._children) {
+        this._clientsReadied = false;
+        this._clients = [];
+        this._beginHosting();
+        this._template = this;
+        this._stampTemplate();
+        // this.parentNode.insertBefore(this.root, this);
+        this._endHosting();
+        this._marshalAnnotatedNodes();
+        if (this._bindListeners) {
+          Polymer.Bind.setupBindListeners(this);
+        }
+        this._rootDataHost = Polymer.Templatizer._getRootDataHost.call(this);
+        this._marshalAnnotatedListeners(this._rootDataHost);
+        this._children = [];
+        var root = this.root;
+        root.__noContent = !(this._content._notes && this._content._notes._hasContent);
+        root.__styleScoped = true;
+        for (var el=root.firstChild; el; el=el.nextSibling) {
+          this._children.push(el);
+        }
         var parentNode = Polymer.dom(this).parentNode;
-        // Guard against element being detached while render was queued
         if (parentNode) {
           var parent = Polymer.dom(parentNode);
-          // TODO(sorvell): pickup stamping logic from x-repeat
-          this._instance = this.stamp();
-          var root = this._instance.root;
-          // TODO(sorvell): this incantation needs to be simpler.
           parent.insertBefore(root, this);
         }
+        this._configureAnnotationReferences();
+        this._distributeConfig(this.__data__);
+        this._readyClients();
+        this._clientsReadied = true;
+        this._flushHandlers();
       }
     },
 
-    _teardownInstance: function() {
-      if (this._instance) {
-        var c$ = this._instance._children;
-        if (c$) {
-          // use first child parent, for case when dom-if may have been detached
-          var parent = Polymer.dom(Polymer.dom(c$[0]).parentNode);
-          for (var i=0, n; (i<c$.length) && (n=c$[i]); i++) {
-            parent.removeChild(n);
-          }
+    _teardownChildren: function() {
+      if (this._children) {
+        var c$ = this._children;
+        // use first child parent, for case when dom-if may have been detached
+        var parent = Polymer.dom(Polymer.dom(c$[0]).parentNode);
+        for (var i=0, n; (i<c$.length) && (n=c$[i]); i++) {
+          parent.removeChild(n);
         }
-        this._instance = null;
+        this._nodes = [];
+        this._children = null;
       }
     },
 
     _showHideChildren: function() {
-      var hidden = this.__hideTemplateChildren__ || !this.if;
-      if (this._instance) {
-        this._instance._showHideChildren(hidden);
-      }
-    },
-
-    // Implements extension point from Templatizer mixin
-    // Called as side-effect of a host property change, responsible for
-    // notifying parent.<prop> path change on instance
-    _forwardParentProp: function(prop, value) {
-      if (this._instance) {
-        this._instance[prop] = value;
-      }
-    },
-
-    // Implements extension point from Templatizer
-    // Called as side-effect of a host path change, responsible for
-    // notifying parent.<path> path change on each row
-    _forwardParentPath: function(path, value) {
-      if (this._instance) {
-        this._instance._notifyPath(path, value, true);
+      if (this._children) {
+        var hidden = this.__hideTemplateChildren__ || !this.if;
+        Polymer.Templatizer._showHideChildrenImpl.call(this, hidden);
       }
     }
 
