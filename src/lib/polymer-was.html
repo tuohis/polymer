@@ -1,0 +1,129 @@
+<!--
+@license
+Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<script>
+(function() {
+
+  Polymer.Was = {
+
+    beforeRegister: function() {
+      // was-ables may duplicate this behavior so this will be called 
+      // multiple times, but the work need only be done once so bail if 
+      // already was'd.
+      if (this.__wased) {
+        return;
+      }
+      if (this.was) {
+        var wasProto = this._getWas(this.was);
+        if (wasProto) {
+          // chain proto to was...
+          Polymer.Base.chainObject(this, wasProto);
+          // chain behaviors from was
+          var wasBehaviors = wasProto.behaviors.filter(function(p) {
+            return p !== Polymer.Was;
+          });
+          wasBehaviors.push(wasProto);
+          this.behaviors = wasBehaviors.concat(this.behaviors);
+        } else {
+          console.warn(this.is, 'could not find extendable prototype for was ', 
+            this.was);
+        }
+      }
+      this.__wased = true;
+      // We rebuild this memoized data from scratch so we eliminate 
+      // the values mix'd in from the `was`
+      this._aggregatedAttributes = null;
+      this._propertyEffects = null;
+    },
+
+    // useful for calling super functions...
+    // e.g. `this._getWas('x-extend').go.call(this);`
+    _getWas: function(tag) {
+      return Polymer.telemetry.getProto(tag);
+    },
+
+    _doBehavior: function(name, args) {
+      var list = this.behaviors[name];
+      if (!list) {
+        list = this.behaviors[name] = this._calcBehaviorMethods(name);
+      }
+      for (var i=0; i < list.length; i++) {
+        list[i].apply(this, args || Polymer.nar);
+      }
+    },
+
+    _calcBehaviorMethods: function(name) {
+      var list = [], fn;
+      for (var i=0; i < this.behaviors.length; i++) {
+        fn = this.behaviors[i][name];
+        if (fn && list.indexOf(fn) < 0) {
+          list.push(fn);
+        }
+      }
+      fn = this[name];
+      if (fn && list.indexOf(fn) < 0) {
+          list.push(fn);
+        };
+      return list;
+    },
+
+    // template
+    _prepTemplate: function() {
+      // locate template using dom-module
+      if (!this.hasOwnProperty('_template') || this._template === undefined) {
+        this.__baseTemplate = Polymer.DomModule.import(this.is, 'template') || 
+          this.__baseTemplate || this._template;
+        var wasProto = this._getWas(this.was);
+        var wasTemplate = wasProto && 
+          (wasProto.__baseTemplate || wasProto._template);
+        var wasInsert = 
+          this.__baseTemplate.content.querySelector('template[insert=was]');
+        if (wasInsert && wasTemplate) {
+          wasTemplate = wasTemplate.cloneNode(true);
+          wasTemplate.setAttribute('insert', '');
+          this._interpolateTemplate(wasTemplate, wasInsert);
+          wasInsert.parentNode.replaceChild(wasTemplate, wasInsert);
+        }
+        this._template = this.__baseTemplate.cloneNode(true);
+        this._interpolateTemplate(this._template);
+      }
+      Polymer.Base._prepTemplate.call(this);
+    },
+
+    _interpolateTemplate: function(target, source) {
+      var insertionPoints = target.content.querySelectorAll('template[insert]');
+      for (var i=0; i < insertionPoints.length; i++) {
+        var n = insertionPoints[i];
+        var sel = n.getAttribute('insert');
+        var r = source && sel &&
+          source.content.querySelector('template[insert=' + sel + ']');
+        if (r) {
+          n.parentNode.replaceChild(r.content.cloneNode(true), n);
+        } else {
+          n.parentNode.replaceChild(n.content, n);
+        }
+      }
+    }
+
+  };
+
+  // TODO(sorvell): fix in master?
+  Polymer.Annotations.parseAnnotations = function(template) {
+    var content = template._content || template.content;
+    if (!content._notes) {
+      var list = content._notes = [];
+      this._parseNodeAnnotations(content, list,
+        template.hasAttribute('strip-whitespace'));
+    }
+    return content._notes;
+  }
+
+})();
+</script>

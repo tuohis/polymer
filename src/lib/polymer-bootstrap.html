@@ -84,16 +84,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   // telemetry: statistics, logging, and debug
 
   Polymer.telemetry = {
-    registrations: [],
+    registrations: {},
     _regLog: function(prototype) {
       console.log('[' + prototype.is + ']: registered')
     },
     _registrate: function(prototype) {
-      this.registrations.push(prototype);
-      Polymer.log && this._regLog(prototype);
+      if (prototype.is) {
+        this.registrations[prototype.is] = prototype;
+        Polymer.log && this._regLog(prototype);
+      }
     },
+
+    getProto: function(is) {
+      return this.registrations[is];
+    },
+
     dumpRegistrations: function() {
-      this.registrations.forEach(this._regLog);
+      for (var i in this.registrations) {
+        this._regLog(this.registrations[i]);
+      }
     }
   };
 

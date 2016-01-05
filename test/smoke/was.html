@@ -1,0 +1,378 @@
+<!doctype html>
+<html>
+<head>
+
+  <title>is/was (extension)</title>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="../../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../../polymer.html">
+  <link rel="import" href="../../src/lib/polymer-was.html">
+
+</head>
+<body>
+
+  <dom-module id="x-base">
+    <template strip-whitespace>
+      <style>
+        :host {
+          display: block;
+          border: 1px dashed orange;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      x-base: {{value}}
+    </template>
+    <script>
+    // note: don't have to do anything to be `was-able`
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-base',
+
+        hostAttributes: {
+          foo: true
+        },
+
+        properties: {
+          value: {
+            value: 'stamped!'
+          }
+        },
+
+        ready: function() {
+          console.log('***');
+          console.log('I x-base.ready', this.is);
+        }, 
+
+        go: function() {
+          console.log(this.is, 'go!');
+        }
+
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-extend">
+    <template strip-whitespace>
+      <style>
+        :host {
+          display: block;
+          border: 1px dashed orange;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <span>&raquo;</span>
+      x-extend: {{value}} {{value2}}
+      <span>&laquo;</span>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-extend',
+
+        was: 'x-base',
+
+        behaviors: [ Polymer.Was ],
+
+        hostAttributes: {
+          bar: true
+        },
+
+        properties: {
+          value2: {
+            value: 'stamp2!'
+          }
+        },
+
+        // observers: [
+        //   'stuffHappened(value, value2)'
+        // ],
+
+        ready: function() {
+          //this._getWas('x-base').ready.call(this);
+          console.log('I am x-extend.ready', this.is);
+        },
+
+        go: function() {
+          this._getWas('x-base').go.call(this);
+          console.log(this.is, 'gogo!');
+        },
+
+        stuffHappened: function(a, b) {
+          console.log(this.is, 'stuffHappened', a, b);
+        }
+
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-extend2">
+    <template strip-whitespace>
+      <style>
+        :host {
+          display: block;
+          border: 1px dashed red;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <div>x-extend2: {{value}} wha huh?</div>
+      <div>value2 gets routed here: {{value2}}</div>
+      <div>end</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-extend2',
+
+        was: 'x-extend',
+
+        behaviors: [ Polymer.Was ],
+
+        properties: {
+          value3: {
+            value: 'stamp3!'
+          }
+        },
+
+        // observers: [
+        //   'stuffHappened2(value, value2, value3)'
+        // ],
+
+        ready: function() {
+          //this._getWas('x-extend').ready.call(this);
+          console.log('I am x-extend2.ready', this.is);
+        },
+
+        go: function() {
+          this._getWas('x-extend').go.call(this);
+          console.log(this.is, 'gogogo!');
+        },
+
+        stuffHappened2: function() {
+          console.log(this.is, 'stuffHappened2', arguments);
+        }
+
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-extend3">
+    <style>
+      :host {
+        display: block;
+        border: 1px dashed blue;
+        margin: 8px;
+        padding: 8px;
+      }
+    </style>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-extend3',
+
+        was: 'x-extend2',
+
+        behaviors: [ Polymer.Was ]
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-extend4">
+    <style>
+      :host {
+        display: block;
+        border: 1px dashed blue;
+        margin: 8px;
+        padding: 8px;
+      }
+    </style>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-extend4',
+
+        was: 'x-extend3',
+
+        behaviors: [ Polymer.Was ]
+      });
+    });
+    </script>
+  </dom-module>
+
+
+  <dom-module id="x-wrap">
+    <template>
+      <style>
+        :host {
+          display: block;
+          border: 4px double navy;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <div>x-wrap \/ \/ \/</div>
+      <template insert="content">
+        <style>.foo { border: 1px solid orange; padding: 8px;}</style>
+        <div class="foo">This content is from x-wrap!</div>
+      </template>
+      <div>x-wrap /\ /\ /\</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-wrap',
+
+        // note: have to include behavior if you use `template insert`
+        behaviors: [ Polymer.Was ]
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-content1">
+    <template>
+       <style>
+        :host {
+          display: block;
+          border: 4px double navy;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <div>x-content1 \/ \/ \/</div>
+      <template insert="was">
+        <template insert="content">This content is from x-content1!</template>
+      </template>
+      <template insert="more">More from x-content1!</template>
+      <div>x-content1 /\ /\ /\</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-content1',
+
+        was: 'x-wrap',
+
+        behaviors: [ Polymer.Was ]
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-content2">
+    <template>
+       <style>
+        :host {
+          display: block;
+          border: 4px double navy;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <div>x-content2 \/ \/ \/</div>
+      <template insert="was">
+        <template insert="more">This content is from x-content2!</template>
+      </template>
+      <div>x-content2 /\ /\ /\</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-content2',
+
+        was: 'x-content1',
+
+        behaviors: [ Polymer.Was ]
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-shadow">
+    <template>
+      <div>x-shadow</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-shadow',
+
+        // TODO(sorvell): have to include behavior if you use bindings =(
+        //behaviors: [ Polymer.Was ]
+      });
+    });
+    </script>
+  </dom-module>
+
+
+  <dom-module id="x-sub">
+    <template>
+      <style>
+        :host {
+          display: block;
+          border: 4px double navy;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <div>x-sub \/ \/ \/</div>
+      <template insert="was"></template>
+      <div>x-sub /\ /\ /\</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-sub',
+
+        was: 'x-shadow',
+
+        behaviors: [ Polymer.Was ]
+      });
+    });
+    </script>
+  </dom-module>
+
+
+  <x-base></x-base>
+
+  <x-extend></x-extend>
+
+  <x-extend2></x-extend2>
+
+  <x-extend3></x-extend3>
+
+  <x-extend4></x-extend4>
+
+  <hr>
+
+  <x-wrap></x-wrap>
+
+  <x-content1></x-content1>
+
+  <x-content2></x-content2>
+
+  <hr>
+
+  <x-sub></x-sub>
+
+</body>
+</html>
