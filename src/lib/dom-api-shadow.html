@@ -26,6 +26,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       return TreeApi.arrayCopy(this.node.querySelectorAll(selector));
     },
 
+    // For bc, we must return undefined instead of null.
+    querySelector: function(selector) {
+      return this.node.querySelector(selector) || undefined;
+    },
+
     getOwnerRoot: function() {
       var n = this.node;
       while (n) {
@@ -120,8 +125,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   };
 
   forwardMethods(['cloneNode', 'appendChild', 'insertBefore',
-    'removeChild', 'replaceChild', 'setAttribute', 'removeAttribute',
-    'querySelector']);
+    'removeChild', 'replaceChild', 'setAttribute', 'removeAttribute']);
 
   var forwardProperties = function(f$) {
     for (var i=0; i < f$.length; i++) {
