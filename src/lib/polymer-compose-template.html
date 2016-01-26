@@ -1,0 +1,53 @@
+<!--
+@license
+Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<script>
+  
+  Polymer.ComposeTemplate = {
+    // template
+    _prepTemplate: function() {
+      // locate template using dom-module
+      if (!this.hasOwnProperty('_template') || this._template === undefined) {
+        this.__baseTemplate = Polymer.DomModule.import(this.is, 'template') || 
+          this.__baseTemplate || this._template;
+        var wasProto = this._getWas(this.was);
+        var wasTemplate = wasProto && 
+          (wasProto.__baseTemplate || wasProto._template);
+        var wasInsert = 
+          this.__baseTemplate.content.querySelector('template[insert=was]');
+        if (wasInsert && wasTemplate) {
+          wasTemplate = wasTemplate.cloneNode(true);
+          wasTemplate.setAttribute('insert', '');
+          this._interpolateTemplate(wasTemplate, wasInsert);
+          wasInsert.parentNode.replaceChild(wasTemplate, wasInsert);
+        }
+        this._template = this.__baseTemplate.cloneNode(true);
+        this._interpolateTemplate(this._template);
+      }
+      Polymer.Base._prepTemplate.call(this);
+    },
+
+    _interpolateTemplate: function(target, source) {
+      var insertionPoints = target.content.querySelectorAll('template[insert]');
+      for (var i=0; i < insertionPoints.length; i++) {
+        var n = insertionPoints[i];
+        var sel = n.getAttribute('insert');
+        var r = source && sel &&
+          source.content.querySelector('template[insert=' + sel + ']');
+        if (r) {
+          n.parentNode.replaceChild(r.content.cloneNode(true), n);
+        } else {
+          n.parentNode.replaceChild(n.content, n);
+        }
+      }
+    }
+  };
+
+</script>

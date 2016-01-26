@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+
+  <title>behaviors-munging</title>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="../../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../../polymer.html">
+  <link rel="import" href="../../src/lib/polymer-was.html">
+
+</head>
+<body>
+
+  <dom-module id="x-base">
+    <template strip-whitespace>
+      <style>
+        :host {
+          display: block;
+          border: 1px dashed orange;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      x-base: {{value}}
+    </template>
+    <script>
+    // note: don't have to do anything to be `was-able`
+    HTMLImports.whenReady(function() {
+      var myBehavior = {
+
+        hostAttributes: {
+          attr: true
+        },
+
+        listeners: {
+          'tap': '_myBehaviorTap'
+        },
+
+        properties: {
+          value: {
+            value: 'stamped!',
+            observer: '_propertiesObserver'
+          },
+
+          foo: {
+            value: 'foo'
+          }
+        },
+
+        observers: [
+          '_observersObserver(foo)'
+        ],
+
+        ready: function() {
+          console.log('***');
+          console.log('I x-base.ready', this.is);
+        }, 
+
+        go: function() {
+          console.log('***');
+          console.log(this.is, 'x-base.go!');
+        },
+
+        _myBehaviorTap: function(e) {
+          console.log('_myBehaviorTap', e.type);
+        },
+
+        _propertiesObserver: function() {
+          console.log('myBehavior._propertiesObserver', this.is, this.value);
+        },
+
+        _observersObserver: function() {
+          console.log('myBehavior._observersObserver', this.is, this.foo);
+        }
+
+      };
+
+      Polymer({
+        is: 'x-base',
+
+        behaviors: [myBehavior],
+
+        hostAttributes: {
+          attr: 'hi' // wins
+        },
+
+        properties: {
+          foo: {
+            value: 'nug' // wins
+          }
+        },
+
+        observers: [
+          '_observer2(foo)'
+        ],
+
+        _observer2: function() {
+          console.log('_observer2', this.is, this.foo);
+        }
+
+
+      });
+    });
+    </script>
+  </dom-module>
+
+  <x-base></x-base>
+
+  <script>
+  addEventListener('WebComponentsReady', function() {
+    console.log('*****');
+    // document.querySelector('x-base').go();
+    // document.querySelector('x-extend').go();
+    // document.querySelector('x-extend2').go();
+    // document.querySelector('x-extend3').go();
+    // document.querySelector('x-extend4').go();
+  });
+  </script>
+
+</body>
+</html>

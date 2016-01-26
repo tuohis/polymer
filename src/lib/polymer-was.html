@@ -20,9 +20,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       if (this.__wased) {
         return;
       }
+
+      for (var i in Polymer.Base._behaviorProperties) {
+        // NOTE: hasOwnProperty goes away if this is not a behavior.
+        if (!this.hasOwnProperty(i)) {
+          this[i] = null;
+        }
+      }
+
       if (this.was) {
         var wasProto = this._getWas(this.was);
         if (wasProto) {
+          // setup __behaviorMethods
+          this.__behaviorMethods = this.behaviors.concat(
+            wasProto.__behaviorMethods || wasProto.behaviors);
           // chain proto to was...
           Polymer.Base.chainObject(this, wasProto);
           // chain behaviors from was
@@ -30,12 +41,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return p !== Polymer.Was;
           });
           wasBehaviors.push(wasProto);
+          // collapsed list of: 
+          // [ extended behaviors, extended element, this.behaviors ]
           this.behaviors = wasBehaviors.concat(this.behaviors);
         } else {
           console.warn(this.is, 'could not find extendable prototype for was ', 
             this.was);
         }
       }
+
       this.__wased = true;
       // We rebuild this memoized data from scratch so we eliminate 
       // the values mix'd in from the `was`
@@ -50,80 +64,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _doBehavior: function(name, args) {
-      var list = this.behaviors[name];
-      if (!list) {
-        list = this.behaviors[name] = this._calcBehaviorMethods(name);
-      }
+      var list = this.__behaviorMethods || this.behaviors;
       for (var i=0; i < list.length; i++) {
-        list[i].apply(this, args || Polymer.nar);
+        this._invokeBehavior(list[i], name, args);
       }
+      this._invokeBehavior(this, name, args);
     },
-
-    _calcBehaviorMethods: function(name) {
-      var list = [], fn;
-      for (var i=0; i < this.behaviors.length; i++) {
-        fn = this.behaviors[i][name];
-        if (fn && list.indexOf(fn) < 0) {
-          list.push(fn);
-        }
-      }
-      fn = this[name];
-      if (fn && list.indexOf(fn) < 0) {
-          list.push(fn);
-        };
-      return list;
-    },
-
-    // template
-    _prepTemplate: function() {
-      // locate template using dom-module
-      if (!this.hasOwnProperty('_template') || this._template === undefined) {
-        this.__baseTemplate = Polymer.DomModule.import(this.is, 'template') || 
-          this.__baseTemplate || this._template;
-        var wasProto = this._getWas(this.was);
-        var wasTemplate = wasProto && 
-          (wasProto.__baseTemplate || wasProto._template);
-        var wasInsert = 
-          this.__baseTemplate.content.querySelector('template[insert=was]');
-        if (wasInsert && wasTemplate) {
-          wasTemplate = wasTemplate.cloneNode(true);
-          wasTemplate.setAttribute('insert', '');
-          this._interpolateTemplate(wasTemplate, wasInsert);
-          wasInsert.parentNode.replaceChild(wasTemplate, wasInsert);
-        }
-        this._template = this.__baseTemplate.cloneNode(true);
-        this._interpolateTemplate(this._template);
-      }
-      Polymer.Base._prepTemplate.call(this);
-    },
-
-    _interpolateTemplate: function(target, source) {
-      var insertionPoints = target.content.querySelectorAll('template[insert]');
-      for (var i=0; i < insertionPoints.length; i++) {
-        var n = insertionPoints[i];
-        var sel = n.getAttribute('insert');
-        var r = source && sel &&
-          source.content.querySelector('template[insert=' + sel + ']');
-        if (r) {
-          n.parentNode.replaceChild(r.content.cloneNode(true), n);
-        } else {
-          n.parentNode.replaceChild(n.content, n);
-        }
-      }
-    }
 
   };
-
-  // TODO(sorvell): fix in master?
-  Polymer.Annotations.parseAnnotations = function(template) {
-    var content = template._content || template.content;
-    if (!content._notes) {
-      var list = content._notes = [];
-      this._parseNodeAnnotations(content, list,
-        template.hasAttribute('strip-whitespace'));
-    }
-    return content._notes;
-  }
 
 })();
 </script>

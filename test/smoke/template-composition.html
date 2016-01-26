@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+<head>
+
+  <title>is/was (extension)</title>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="../../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../../polymer.html">
+  <link rel="import" href="../../src/lib/polymer-was.html">
+  <link rel="import" href="../../src/lib/polymer-compose-template.html">
+
+</head>
+<body>
+
+  <!-- Template composition -->
+
+  <dom-module id="x-wrap">
+    <template>
+      <style>
+        :host {
+          display: block;
+          border: 4px double navy;
+          margin: 8px;
+          padding: 8px;
+        }
+
+        .foo { border: 1px solid orange; padding: 8px;}
+      </style>
+      <div>x-wrap \/ \/ \/</div>
+      <template insert="content" consume="content">
+        <div class="foo">This content is from x-wrap!</div>
+      </template>
+      <div>x-wrap /\ /\ /\</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-wrap',
+
+        // note: have to include behavior if you use `template insert`
+        behaviors: [ Polymer.Was, Polymer.ComposeTemplate ]
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-content1">
+    <template>
+       <style>
+        :host {
+          display: block;
+          border: 4px double navy;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <div>x-content1 \/ \/ \/</div>
+      <template insert="was" insert-super>
+        <template insert="content" provide="content">This content is from x-content1!</template>
+      </template>
+      <template insert="more" consume="more">More from x-content1!</template>
+      <div>x-content1 /\ /\ /\</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-content1',
+
+        was: 'x-wrap',
+
+        behaviors: [ Polymer.Was, Polymer.ComposeTemplate ]
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-content2">
+    <template>
+       <style>
+        :host {
+          display: block;
+          border: 4px double navy;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <div>x-content2 \/ \/ \/</div>
+      <template insert="was">
+        <template insert="more">This content is from x-content2!</template>
+      </template>
+      <div>x-content2 /\ /\ /\</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-content2',
+
+        was: 'x-content1',
+
+        behaviors: [ Polymer.Was, Polymer.ComposeTemplate ]
+      });
+    });
+    </script>
+  </dom-module>
+
+  <dom-module id="x-shadow">
+    <template>
+      <div>x-shadow {{yo}}</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-shadow',
+
+        properties: {
+          yo: {value: 'yo'}
+        },
+
+        // TODO(sorvell): have to include behavior if you use bindings =(
+        behaviors: [ Polymer.Was, Polymer.ComposeTemplate ]
+      });
+    });
+    </script>
+  </dom-module>
+
+
+  <dom-module id="x-sub">
+    <template>
+      <style>
+        :host {
+          display: block;
+          border: 4px double navy;
+          margin: 8px;
+          padding: 8px;
+        }
+      </style>
+      <div>x-sub \/ \/ \/</div>
+      <template insert="was"></template> <!-- <shadow></shadow> -->
+      <div>x-sub /\ /\ /\</div>
+    </template>
+    <script>
+    HTMLImports.whenReady(function() {
+      Polymer({
+
+        is: 'x-sub',
+
+        was: 'x-shadow',
+
+        behaviors: [ Polymer.Was, Polymer.ComposeTemplate ]
+      });
+    });
+    </script>
+  </dom-module>
+
+
+  <x-wrap></x-wrap>
+
+  <x-content1></x-content1>
+
+  <x-content2></x-content2>
+
+  <hr>
+
+  <x-sub></x-sub>
+
+</body>
+</html>
