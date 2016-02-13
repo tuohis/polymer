@@ -152,6 +152,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         for (var i in source) {
           t = target[i];
           s = source[i];
+          // Computed properties are implicitly read-only
+          s.readOnly = s.readOnly || Boolean(s.computed);
           // optimization: avoid info'ing properties that are protected and
           // not read only since they are not needed for attributes or
           // configuration.

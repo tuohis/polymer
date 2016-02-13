@@ -56,8 +56,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this._addObserverEffect(p, prop.observer);
           }
           if (prop.computed) {
-            // Computed properties are implicitly readOnly
-            prop.readOnly = true;
             this._addComputedEffect(p, prop.computed);
           }
           if (prop.notify) {
@@ -228,7 +226,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       if (m) {
         var sig = { method: m[1], static: true };
         // TODO(kaste): Optimize/memoize `getPropertyInfo`.
-        if (this.getPropertyInfo(sig.method) !== Polymer.nob) {
+        if (this._propertyInfo[sig.method]) {
           sig.static = false;
           sig.dynamicFn = true;
         }
