@@ -236,8 +236,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // unwanted uniquification and parsedSelector does not directly match
           // for :host selectors.
           if (element && rule.propertyInfo.properties &&
-              matchesSelector.call(element, rule.transformedSelector
-                || rule.parsedSelector)) {
+              self.elementMatchesRule(element, rule)) {
             self.collectProperties(rule, props);
             // produce numeric key for these matches for lookup
             addToBitMask(i, o);
@@ -245,6 +244,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           i++;
         });
         return {properties: props, key: o};
+      },
+
+      elementMatchesRule: function(element, rule) {
+        var match = matchesSelector.call(element, rule.transformedSelector
+          || rule.parsedSelector);
+        if (match && rule.parent && 
+            rule.parent.type == styleUtil.parser.types.MEDIA_RULE) {
+          var mediaMatch = rule.parent.selector.match(/@media[^(]*(\([^)]*\))/);
+          if (mediaMatch) {
+            match = window.matchMedia(mediaMatch[1]).matches;
+          }
+        }
+        return match;
       },
 
       // Test if a rule matches scope criteria (* or :root) and if so,
