@@ -84,7 +84,49 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     _finishFlush: function() {
       Polymer.dom._debouncers = [];
-    }
+    },
+
+    _connect: {
+
+        queue: [],
+
+        suspended: false,
+
+        attach: function(node) {
+          if (this.suspended) {
+            if (!node.__polymerConnnect) {
+              this.queue.push(node);
+            }
+            node.__polymerConnnect = 'attach';
+            return true;
+          }
+        },
+
+        detach: function(node) {
+          if (this.suspended) {
+            if (!node.__polymerConnnect) {
+              this.queue.push(node);
+            }
+            node.__polymerConnnect = 'detach';
+            return true;
+          }
+        },
+
+        flush: function() {
+          this.suspended = false;
+          for (var i=0, e; i < this.queue.length; i++) {
+            e = this.queue[i];
+            if (e.__polymerConnnect === 'attach') {
+              e.attachedCallback();
+            } else {
+              e.detachedCallback();
+            }
+            e.__polymerConnnect = null;
+          }
+          this.queue = [];
+        }
+
+      }
 
   });
 

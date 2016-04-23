@@ -167,6 +167,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // so that attachment that provokes additional distribution (e.g.
           // adding something to your parentNode) works
           this.shadyRoot._distributionClean = true;
+          Polymer.dom._connect.suspended = true;
           if (DomApi.hasInsertionPoint(this.shadyRoot)) {
             this._composeTree();
             // NOTE: send a signal to insertion points that we have distributed
@@ -182,6 +183,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               this._updateChildNodes(this, children);
             }
           }
+          Polymer.dom._connect.flush();
           // NOTE: send a signal to any Polymer.dom node observers
           // to report the initial set of childNodes
           if (!this.shadyRoot._hasDistributed) {

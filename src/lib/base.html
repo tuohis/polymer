@@ -82,6 +82,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       // https://code.google.com/p/chromium/issues/detail?id=516550
       // To allow querying style/layout data in attached, we defer it
       // until we are sure rendering is ready.
+      if (Polymer.dom && Polymer.dom._connect.attach(this)) {
+        return;
+      }
       var self = this;
       Polymer.RenderStatus.whenReady(function() {
         self.isAttached = true;
@@ -91,6 +94,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     // reserved for canonical behavior
     detachedCallback: function() {
+      if (Polymer.dom && Polymer.dom._connect.detach(this)) {
+        return;
+      }
       // NOTE: duplicate attachedCallback behavior
       var self = this;
       Polymer.RenderStatus.whenReady(function() {
