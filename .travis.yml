@@ -19,8 +19,7 @@ before_script:
 - gulp lint
 - gulp switch
 script:
-- xvfb-run wct
-- "if [ \"${TRAVIS_PULL_REQUEST}\" = \"false\" ]; then wct -s default; fi"
+- xvfb-run wct --verbose
 
 env:
   global:
