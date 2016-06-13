@@ -10,4 +10,4 @@ before_script:
 - gulp lint
 - gulp switch
 script:
-- xvfb-run -s '-screen 0 1024x768x24 +extension RANDR' wct -l firefox --verbose
+- xvfb-run -s '-screen 0 1024x768x24 +extension RANDR -ac' wct -l firefox --verbose
