@@ -3,11 +3,11 @@ sudo: required
 dist: trusty
 node_js: stable
 addons:
-  firefox: 46.0
+  firefox: latest
 before_script:
 - npm install -g bower gulp-cli@1
 - bower install
 - gulp lint
 - gulp switch
 script:
-- xvfb-run wct -l firefox --verbose
+- xvfb-run -s '-screen 0 1024x768x24 +extension RANDR' wct -l firefox --verbose
