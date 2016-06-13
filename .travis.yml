@@ -13,6 +13,7 @@ before_script:
 - gulp lint
 - gulp switch
 script:
+- ldd node_modules/selenium-standalone/.selenium/geckodriver/wires
 - xvfb-run wct --verbose
 
 env:
