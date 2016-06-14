@@ -10,4 +10,4 @@ before_script:
 - gulp lint
 - gulp switch
 script:
-- xvfb-run node_modules/.bin/wct -l firefox --verbose
+- RUST_LOG=debug xvfb-run node_modules/.bin/wct -l firefox --verbose
