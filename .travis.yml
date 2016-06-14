@@ -10,4 +10,4 @@ before_script:
 - gulp lint
 - gulp switch
 script:
-- xvfb-run wct -l firefox --verbose
+- xvfb-run node_moduldes/.bin/wct -l firefox --verbose
