@@ -2,12 +2,13 @@ language: node_js
 sudo: required
 dist: trusty
 node_js: stable
-addons:
-  firefox: 50.0a1
 before_script:
 - npm install -g bower gulp-cli@1
 - bower install
 - gulp lint
 - gulp switch
+- wget 'https://download.mozilla.org/?product=firefox-nightly-latest&lang=en-US&os=linux64' -O firefox-nightly.tar.bz2
+- tar xvf firefox-nightly.tar.bz2
+- export PATH="$PWD/firefox/":$PATH
 script:
 - RUST_LOG=debug xvfb-run node_modules/.bin/wct -l firefox --verbose
