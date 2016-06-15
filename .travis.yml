@@ -3,7 +3,7 @@ sudo: required
 dist: trusty
 node_js: stable
 addons:
-  firefox: latest-nightly
+  firefox: 50.0a1
 before_script:
 - npm install -g bower gulp-cli@1
 - bower install
