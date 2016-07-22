@@ -78,7 +78,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     _ensureRegisterFinished: function(proto) {
       if (proto.__hasRegisterFinished !== proto.is || !proto.is) {
         // apply behavior's beforeRegister at first instance time
-        // IFF `lazyRegister` is 'max'
+        // if and only if `lazyRegister` is 'max'
         if (settings.lazyRegister === 'max') {
           proto._desugarBehaviors(); // abstract
           proto._doBehaviorOnly('beforeRegister'); // abstract
