@@ -246,10 +246,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       var event = useCache && this.__eventCache[type];
       if (!event || ((event.bubbles != bubbles) ||
           (event.cancelable != cancelable))) {
-        event = new Event(type, {
-          bubbles: Boolean(bubbles),
-          cancelable: cancelable
-        });
+        try {
+          event = new Event(type, {
+            bubbles: Boolean(bubbles),
+            cancelable: cancelable
+          });
+        } catch (err) {
+          event = document.createEvent('Event');
+          event.initEvent(type, Boolean(bubbles), cancelable);
+        }
       }
       return event;
     },
@@ -394,10 +399,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       // if already loaded/erroed, fire 'fake' load/error event
       if (cached) {
         if (cached.__firedLoad) {
-          cached.dispatchEvent(new Event('load'));
+          cached.dispatchEvent(this._getEvent('load'));
         }
         if (cached.__firedError) {
-          cached.dispatchEvent(new Event('error'));
+          cached.dispatchEvent(this._getEvent('error'));
         }
       // otherwise put in dom!
       } else {
